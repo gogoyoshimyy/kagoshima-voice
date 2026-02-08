@@ -1,0 +1,124 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+
+  posts         Post[]
+  reactions     Reaction[]
+  follows       Follow[]
+  notifications Notification[]
+}
+
+model IssueCard {
+  id          String   @id @default(uuid())
+  title       String
+  summary     String
+  categories  String // Stored as JSON string
+  regionScope String // e.g., "Kagoshima City", "Kirishima"
+  isPublic    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  posts          Post[]
+  reactions      Reaction[]
+  follows        Follow[]
+  productUpdates ProductUpdate[]
+  notifications  Notification[]
+}
+
+model Post {
+  id           String   @id @default(uuid())
+  userId       String
+  textOriginal String
+  textFinal    String
+  categories   String // Stored as JSON string
+  region       String
+  tone         String?
+  flags        String? // Stored as JSON string (auto-moderation flags)
+  status       String   @default("PENDING") // PENDING, APPROVED, REJECTED
+  issueId      String?
+  createdAt    DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id])
+  issue         IssueCard?     @relation(fields: [issueId], references: [id])
+  moderationLog ModerationLog?
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  issueId   String
+  userId    String
+  type      String // LIKE, EMERGENCY, TESTER, SOLVED
+  createdAt DateTime @default(now())
+
+  issue IssueCard @relation(fields: [issueId], references: [id])
+  user  User      @relation(fields: [userId], references: [id])
+
+  @@unique([issueId, userId, type])
+}
+
+model Follow {
+  id        String   @id @default(uuid())
+  issueId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  issue IssueCard @relation(fields: [issueId], references: [id])
+  user  User      @relation(fields: [userId], references: [id])
+
+  @@unique([issueId, userId])
+}
+
+model ProductUpdate {
+  id          String    @id @default(uuid())
+  issueId     String
+  type        String // app, event, info
+  title       String
+  description String
+  url         String?
+  startDate   DateTime?
+  endDate     DateTime?
+  isPublished Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  issue         IssueCard      @relation(fields: [issueId], references: [id])
+  notifications Notification[]
+}
+
+model Notification {
+  id              String   @id @default(uuid())
+  userId          String
+  issueId         String?
+  productUpdateId String?
+  title           String
+  body            String
+  isRead          Boolean  @default(false)
+  createdAt       DateTime @default(now())
+
+  user          User           @relation(fields: [userId], references: [id])
+  issue         IssueCard?     @relation(fields: [issueId], references: [id])
+  productUpdate ProductUpdate? @relation(fields: [productUpdateId], references: [id])
+}
+
+model ModerationLog {
+  id        String   @id @default(uuid())
+  postId    String   @unique
+  reviewer  String // "AUTO" or admin user ID
+  action    String // APPROVED, REJECTED
+  before    String? // JSON
+  after     String? // JSON
+  createdAt DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [id])
+}
