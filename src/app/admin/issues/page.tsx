@@ -1,12 +1,8 @@
-import { PrismaClient } from '@prisma/client'
 import Link from 'next/link'
-
-const prisma = new PrismaClient()
+import { MOCK_ISSUES } from '@/lib/mockData'
 
 export default async function AdminIssuesPage() {
-    const issues = await prisma.issueCard.findMany({
-        orderBy: { createdAt: 'desc' }
-    })
+    const issues = MOCK_ISSUES
 
     return (
         <div className="space-y-6">

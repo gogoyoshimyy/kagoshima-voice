@@ -363,6 +363,18 @@ export const MOCK_PRODUCT_UPDATES: MockProductUpdate[] = [
     }
 ]
 
+// Sample notifications
+export const MOCK_NOTIFICATIONS: MockNotification[] = [
+    {
+        id: 'notif-001',
+        userId: 'user-001',
+        issueId: 'issue-004',
+        message: '「黒豚を使った冷凍餃子」に新しい動きがありました。',
+        isRead: false,
+        createdAt: new Date('2024-02-01')
+    }
+]
+
 // Assign product updates to issues
 MOCK_ISSUES[3].productUpdates = MOCK_PRODUCT_UPDATES.filter(u => u.issueId === 'issue-004')
 

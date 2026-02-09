@@ -1,17 +1,16 @@
-import { PrismaClient } from '@prisma/client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { approvePost, rejectPost } from '@/lib/actions'
 import { Check, X } from 'lucide-react'
-
-const prisma = new PrismaClient()
+import { MOCK_POSTS, MOCK_ISSUES } from '@/lib/mockData'
 
 async function getPendingPosts() {
-    return await prisma.post.findMany({
-        where: { status: 'PENDING' },
-        orderBy: { createdAt: 'desc' },
-        include: { issue: true }
-    })
+    return MOCK_POSTS
+        .filter(p => p.status === 'PENDING')
+        .map(p => ({
+            ...p,
+            issue: MOCK_ISSUES.find(i => i.id === p.issueId)
+        }))
 }
 
 export default async function ModerationPage() {

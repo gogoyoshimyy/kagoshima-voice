@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
-
+import { MOCK_ISSUES, MOCK_POSTS, MOCK_FOLLOWS, MOCK_NOTIFICATIONS, MockNotification } from '@/lib/mockData' // Need to export MOCK_NOTIFICATION if not already
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url)
@@ -10,33 +9,24 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: 'Missing id' }, { status: 400 })
     }
 
-    const user = await prisma.user.findUnique({
-        where: { id },
-        include: {
-            follows: {
-                include: { issue: { select: { id: true, title: true, regionScope: true } } }
-            },
-            notifications: {
-                orderBy: { createdAt: 'desc' },
-                take: 10
-            }
+    // Mock follows
+    const follows = MOCK_FOLLOWS.filter(f => f.userId === id).map(f => {
+        const issue = MOCK_ISSUES.find(i => i.id === f.issueId)
+        return {
+            ...f,
+            issue: issue ? { id: issue.id, title: issue.title, regionScope: issue.regionScope } : null
         }
     })
+
+    // Mock notifications (empty for now or add to mock data)
+    const notifications: MockNotification[] = []
 
     // Count posts this week
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-
-    const postCount = await prisma.post.count({
-        where: {
-            userId: id,
-            createdAt: { gte: oneWeekAgo }
-        }
-    })
+    const postCount = MOCK_POSTS.filter(p => p.userId === id).length
 
     return NextResponse.json({
-        follows: user?.follows || [],
-        notifications: user?.notifications || [],
+        follows,
+        notifications,
         postCount
     })
 }
