@@ -1,6 +1,8 @@
 import { PrismaClient } from '@prisma/client'
 import { ReactionBar } from '@/components/ReactionBar'
+import { SolutionCard } from '@/components/SolutionCard'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { format } from 'date-fns'
 
@@ -11,6 +13,17 @@ async function getIssue(id: string) {
         where: { id },
         include: {
             productUpdates: true,
+            solutions: {
+                where: { isPublished: true },
+                include: {
+                    _count: {
+                        select: { reactions: true }
+                    },
+                    reactions: {
+                        select: { userId: true, type: true }
+                    }
+                }
+            },
             _count: {
                 select: { posts: true, follows: true }
             },
@@ -80,46 +93,98 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
                 allFollows={allFollows}
             />
 
-            {/* Product Updates (Solutions) */}
-            <section>
-                <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
-                    🚀 解決への動き
-                    <Badge variant="outline" className="text-lg">
-                        {issue.productUpdates.length}
-                    </Badge>
-                </h2>
+            {/* Solutions Section */}
+            <section className="space-y-6">
+                {/* Mini Experiment Coming Soon Banner */}
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                        <span className="text-2xl">🧪</span>
+                        <div className="flex-1">
+                            <h3 className="font-semibold text-blue-900 mb-1">ミニ実験（今後実装予定）</h3>
+                            <p className="text-sm text-blue-700">
+                                テスター募集や検証フローを追加予定です。実際に解決策を試して、フィードバックを共有できる仕組みを準備中です。
+                            </p>
+                        </div>
+                        <Button disabled variant="outline" className="shrink-0">
+                            Coming Soon
+                        </Button>
+                    </div>
+                </div>
 
-                {issue.productUpdates.length === 0 ? (
-                    <div className="p-8 bg-slate-50 border rounded-xl text-center text-muted-foreground">
-                        まだ動きはありません。この課題をフォローして、進展を待ちましょう！
-                    </div>
-                ) : (
-                    <div className="grid gap-4">
-                        {issue.productUpdates.map(update => (
-                            <Card key={update.id} className={update.isPublished ? 'border-l-4 border-l-green-500' : ''}>
-                                <CardHeader>
-                                    <div className="flex justify-between">
-                                        <Badge variant={update.type === 'event' ? 'default' : 'secondary'}>
-                                            {update.type.toUpperCase()}
-                                        </Badge>
-                                        <span className="text-sm text-muted-foreground">
-                                            {format(update.createdAt, 'yyyy/MM/dd')}
-                                        </span>
-                                    </div>
-                                    <CardTitle>{update.title}</CardTitle>
-                                    <CardDescription>{update.description}</CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {update.url && (
-                                        <a href={update.url} target="_blank" className="text-blue-600 hover:underline">
-                                            詳細を見る &rarr;
-                                        </a>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        ))}
-                    </div>
-                )}
+                {/* Solution Cards */}
+                <div>
+                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        💡 解決策
+                        <Badge variant="outline" className="text-lg">
+                            {issue.solutions?.length || 0}
+                        </Badge>
+                    </h2>
+
+                    {issue.solutions && issue.solutions.length > 0 ? (
+                        <div className="grid gap-4 md:grid-cols-2">
+                            {issue.solutions.map((solution) => {
+                                const userSolutionReactions = solution.reactions.map(r => r.type)
+                                return (
+                                    <ClientSolutionCardWrapper
+                                        key={solution.id}
+                                        solution={solution}
+                                        allReactions={solution.reactions}
+                                    />
+                                )
+                            })}
+                        </div>
+                    ) : (
+                        <p className="text-muted-foreground text-sm">
+                            まだ解決策が投稿されていません。
+                        </p>
+                    )}
+
+                    <p className="text-xs text-muted-foreground mt-4">
+                        ※ これらのソリューションはデモ用の架空データです
+                    </p>
+                </div>
+
+                {/* Product Updates (Legacy) */}
+                <div>
+                    <h2 className="text-2xl font-bold mb-4 flex items-center gap-2">
+                        🚀 解決への動き
+                        <Badge variant="outline" className="text-lg">
+                            {issue.productUpdates.length}
+                        </Badge>
+                    </h2>
+
+                    {issue.productUpdates.length === 0 ? (
+                        <div className="p-8 bg-slate-50 border rounded-xl text-center text-muted-foreground">
+                            まだ動きはありません。この課題をフォローして、進展を待ちましょう！
+                        </div>
+                    ) : (
+                        <div className="grid gap-4">
+                            {issue.productUpdates.map(update => (
+                                <Card key={update.id} className={update.isPublished ? 'border-l-4 border-l-green-500' : ''}>
+                                    <CardHeader>
+                                        <div className="flex justify-between">
+                                            <Badge variant={update.type === 'event' ? 'default' : 'secondary'}>
+                                                {update.type.toUpperCase()}
+                                            </Badge>
+                                            <span className="text-sm text-muted-foreground">
+                                                {format(update.createdAt, 'yyyy/MM/dd')}
+                                            </span>
+                                        </div>
+                                        <CardTitle>{update.title}</CardTitle>
+                                        <CardDescription>{update.description}</CardDescription>
+                                    </CardHeader>
+                                    <CardContent>
+                                        {update.url && (
+                                            <a href={update.url} target="_blank" className="text-blue-600 hover:underline">
+                                                詳細を見る &rarr;
+                                            </a>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            ))}
+                        </div>
+                    )}
+                </div>
             </section>
 
             <section className="bg-yellow-50 p-6 rounded-xl border border-yellow-100 text-sm text-yellow-800">
@@ -132,4 +197,4 @@ export default async function IssuePage({ params }: { params: Promise<{ id: stri
 }
 
 // Client Wrapper to handle localStorage check
-import { ClientReactionBarWrapper } from './ClientWrapper'
+import { ClientReactionBarWrapper, ClientSolutionCardWrapper } from './ClientWrapper'

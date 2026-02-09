@@ -221,3 +221,33 @@ export async function createProductUpdate(formData: FormData) {
     revalidatePath(`/issue/${issueId}`)
     redirect('/admin/products')
 }
+
+export async function toggleSolutionReaction(solutionId: string, userId: string, type: string) {
+    // Check if reaction exists
+    const existing = await prisma.solutionReaction.findUnique({
+        where: {
+            solutionId_userId_type: {
+                solutionId,
+                userId,
+                type
+            }
+        }
+    })
+
+    if (existing) {
+        await prisma.solutionReaction.delete({
+            where: { id: existing.id }
+        })
+    } else {
+        await prisma.solutionReaction.create({
+            data: {
+                solutionId,
+                userId,
+                type
+            }
+        })
+    }
+
+    revalidatePath(`/issue/[id]`, 'page')
+}
+

@@ -14,10 +14,11 @@ model User {
   id        String   @id @default(uuid())
   createdAt DateTime @default(now())
 
-  posts         Post[]
-  reactions     Reaction[]
-  follows       Follow[]
-  notifications Notification[]
+  posts             Post[]
+  reactions         Reaction[]
+  follows           Follow[]
+  notifications     Notification[]
+  solutionReactions SolutionReaction[]
 }
 
 model IssueCard {
@@ -35,6 +36,7 @@ model IssueCard {
   follows        Follow[]
   productUpdates ProductUpdate[]
   notifications  Notification[]
+  solutions      Solution[]
 }
 
 model Post {
@@ -50,9 +52,9 @@ model Post {
   issueId      String?
   createdAt    DateTime @default(now())
 
-  user          User           @relation(fields: [userId], references: [id])
-  issue         IssueCard?     @relation(fields: [issueId], references: [id])
-  moderationLog ModerationLog?
+  user           User            @relation(fields: [userId], references: [id])
+  issue          IssueCard?      @relation(fields: [issueId], references: [id])
+  moderationLogs ModerationLog[]
 }
 
 model Reaction {
@@ -112,13 +114,40 @@ model Notification {
 }
 
 model ModerationLog {
-  id        String   @id @default(uuid())
-  postId    String   @unique
-  reviewer  String // "AUTO" or admin user ID
-  action    String // APPROVED, REJECTED
-  before    String? // JSON
-  after     String? // JSON
+  id        String   @id @default(cuid())
+  postId    String
+  post      Post     @relation(fields: [postId], references: [id])
+  reviewer  String // Mock field: in real app this would be a User ID
+  action    String // 'APPROVED' or 'REJECTED'
   createdAt DateTime @default(now())
+}
 
-  post Post @relation(fields: [postId], references: [id])
+model Solution {
+  id            String             @id @default(cuid())
+  issueId       String
+  issue         IssueCard          @relation(fields: [issueId], references: [id])
+  title         String
+  type          String // "app" | "tool" | "info" | "counter" | "checklist"
+  audience      String // JSON array
+  steps         String // JSON array of exactly 3 strings
+  etaMinutes    Int
+  providerLabel String // "公式(行政)" | "大学" | "企業" | "編集部"
+  evidenceTag   String // "検証済(予定)" | "公式情報" | "参考情報"
+  url           String?
+  isPublished   Boolean            @default(false)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+  reactions     SolutionReaction[]
+}
+
+model SolutionReaction {
+  id         String   @id @default(cuid())
+  solutionId String
+  solution   Solution @relation(fields: [solutionId], references: [id])
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  type       String // "HELPFUL" | "WILL_TRY" | "SOLVED" | "SAVED"
+  createdAt  DateTime @default(now())
+
+  @@unique([solutionId, userId, type])
 }
