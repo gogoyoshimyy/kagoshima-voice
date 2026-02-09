@@ -1,11 +1,8 @@
 'use server'
 
-import { PrismaClient } from '@prisma/client'
 import { TOXIC_WORDS } from './constants'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
-
-const prisma = new PrismaClient()
 
 // Mock toxicity check
 export async function checkToxicity(text: string) {
@@ -32,222 +29,51 @@ export async function checkToxicity(text: string) {
     return { isToxic, rewritten, foundWords }
 }
 
+// Demo mode: All actions below are no-ops for static deployment
+
 export async function submitPost(formData: FormData) {
-    const categories = JSON.parse(formData.get('categories') as string)
-    const region = formData.get('region') as string
-    const textOriginal = formData.get('textOriginal') as string
-    const textFinal = formData.get('textFinal') as string
-    const userId = formData.get('userId') as string // Mock ID from localStorage
-
-    // 1. Check if user exists, if not create (for demo simplicity)
-    let user = await prisma.user.findFirst({ where: { id: userId } })
-    if (!user) {
-        user = await prisma.user.create({ data: { id: userId } })
-    }
-
-    // 2. Check weekly limit (mock logic: just count posts in last 7 days)
-    const oneWeekAgo = new Date()
-    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-    const postsCount = await prisma.post.count({
-        where: {
-            userId: user.id,
-            createdAt: { gte: oneWeekAgo }
-        }
-    })
-
-    if (postsCount >= 3) {
-        return { error: '今週の投稿上限（3件）に達しました。' }
-    }
-
-    // 3. Find matching IssueCard or create new
-    // For demo: just match by Category + Region, or create new.
-    let issue = await prisma.issueCard.findFirst({
-        where: {
-            regionScope: region,
-            categories: { contains: categories[0] } // Simple match
-        }
-    })
-
-    if (!issue) {
-        issue = await prisma.issueCard.create({
-            data: {
-                title: `${categories[0]} の課題（${region}）`,
-                summary: textFinal.slice(0, 50) + '...',
-                categories: JSON.stringify(categories),
-                regionScope: region,
-                isPublic: true
-            }
-        })
-    }
-
-    // 4. Create Post
-    await prisma.post.create({
-        data: {
-            userId: user.id,
-            issueId: issue.id,
-            textOriginal,
-            textFinal,
-            categories: JSON.stringify(categories),
-            region,
-            status: 'APPROVED' // For demo flow ease
-        }
-    })
-
-    revalidatePath('/')
-    redirect(`/issue/${issue.id}`)
+    // Demo mode: no database writes
+    // Just redirect to home page
+    redirect('/')
 }
 
 export async function toggleReaction(issueId: string, userId: string, type: string) {
-    // Check if reaction exists
-    const existing = await prisma.reaction.findUnique({
-        where: {
-            issueId_userId_type: {
-                issueId,
-                userId,
-                type
-            }
-        }
-    })
-
-    if (existing) {
-        await prisma.reaction.delete({
-            where: { id: existing.id }
-        })
-    } else {
-        await prisma.reaction.create({
-            data: {
-                issueId,
-                userId,
-                type
-            }
-        })
-    }
-
+    // Demo mode: no database writes
     revalidatePath(`/issue/${issueId}`)
 }
 
 export async function toggleFollow(issueId: string, userId: string) {
-    const existing = await prisma.follow.findUnique({
-        where: {
-            issueId_userId: {
-                issueId,
-                userId
-            }
-        }
-    })
-
-    if (existing) {
-        await prisma.follow.delete({
-            where: { id: existing.id }
-        })
-    } else {
-        await prisma.follow.create({
-            data: {
-                issueId,
-                userId
-            }
-        })
-    }
+    // Demo mode: no database writes
     revalidatePath(`/issue/${issueId}`)
 }
 
+export async function toggleSolutionReaction(solutionId: string, userId: string, type: string) {
+    // Demo mode: no database writes
+    revalidatePath(`/issue/[id]`, 'page')
+}
+
+// Admin actions
 export async function approvePost(postId: string) {
-    await prisma.post.update({
-        where: { id: postId },
-        data: { status: 'APPROVED' }
-    })
-    // Log moderation
-    await prisma.moderationLog.create({
-        data: {
-            postId,
-            reviewer: 'ADMIN', // Mock
-            action: 'APPROVED'
-        }
-    })
+    // Demo mode: no database writes
     revalidatePath('/admin/moderation')
 }
 
 export async function rejectPost(postId: string) {
-    await prisma.post.update({
-        where: { id: postId },
-        data: { status: 'REJECTED' }
-    })
-    await prisma.moderationLog.create({
-        data: {
-            postId,
-            reviewer: 'ADMIN',
-            action: 'REJECTED'
-        }
-    })
+    // Demo mode: no database writes
     revalidatePath('/admin/moderation')
 }
 
-export async function createProductUpdate(formData: FormData) {
-    const issueId = formData.get('issueId') as string
-    const type = formData.get('type') as string
-    const title = formData.get('title') as string
-    const description = formData.get('description') as string
-    const url = formData.get('url') as string
-    const isPublished = formData.get('isPublished') === 'on'
-
-    const update = await prisma.productUpdate.create({
-        data: {
-            issueId,
-            type,
-            title,
-            description,
-            url,
-            isPublished
-        }
-    })
-
-    if (isPublished) {
-        // Notify followers
-        const follows = await prisma.follow.findMany({ where: { issueId } })
-        for (const follow of follows) {
-            await prisma.notification.create({
-                data: {
-                    userId: follow.userId,
-                    issueId,
-                    productUpdateId: update.id,
-                    title: `新しい解決策: ${title}`,
-                    body: `フォロー中の課題について、新しい${type}が公開されました。`
-                }
-            })
-        }
-    }
-
-    revalidatePath(`/admin/products`)
-    revalidatePath(`/issue/${issueId}`)
-    redirect('/admin/products')
+export async function mergeIssue(fromId: string, toId: string) {
+    // Demo mode: no database writes
+    revalidatePath('/admin/issues')
 }
 
-export async function toggleSolutionReaction(solutionId: string, userId: string, type: string) {
-    // Check if reaction exists
-    const existing = await prisma.solutionReaction.findUnique({
-        where: {
-            solutionId_userId_type: {
-                solutionId,
-                userId,
-                type
-            }
-        }
-    })
-
-    if (existing) {
-        await prisma.solutionReaction.delete({
-            where: { id: existing.id }
-        })
-    } else {
-        await prisma.solutionReaction.create({
-            data: {
-                solutionId,
-                userId,
-                type
-            }
-        })
-    }
-
-    revalidatePath(`/issue/[id]`, 'page')
+export async function updateIssue(issueId: string, data: { title?: string, summary?: string }) {
+    // Demo mode: no database writes
+    revalidatePath('/admin/issues')
 }
 
+export async function createProductUpdate(data: any) {
+    // Demo mode: no database writes
+    revalidatePath('/admin/products')
+}

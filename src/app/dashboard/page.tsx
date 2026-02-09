@@ -1,17 +1,13 @@
-import { PrismaClient } from '@prisma/client'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CATEGORIES, REGIONS } from '@/lib/constants'
-
-const prisma = new PrismaClient()
+import { MOCK_ISSUES, MOCK_POSTS, MOCK_REACTIONS, MOCK_PRODUCT_UPDATES } from '@/lib/mockData'
 
 async function getStats() {
-    const totalIssues = await prisma.issueCard.count()
-    const totalPosts = await prisma.post.count()
-    const totalReactions = await prisma.reaction.count()
-    const solvedIssues = await prisma.reaction.count({ where: { type: 'SOLVED' } })
-
-    // Simple category distribution (fetching all issues is heavy for real app, but ok for demo)
-    const allIssues = await prisma.issueCard.findMany({ select: { categories: true, regionScope: true } })
+    // Calculate stats from mock data
+    const totalIssues = MOCK_ISSUES.length
+    const totalPosts = MOCK_POSTS.length
+    const totalReactions = MOCK_REACTIONS.length
+    const solvedIssues = MOCK_REACTIONS.filter(r => r.type === 'SOLVED').length
 
     const categoryCounts: Record<string, number> = {}
     CATEGORIES.forEach(c => categoryCounts[c] = 0)
@@ -19,7 +15,7 @@ async function getStats() {
     const regionCounts: Record<string, number> = {}
     REGIONS.forEach(r => regionCounts[r] = 0)
 
-    allIssues.forEach(issue => {
+    MOCK_ISSUES.forEach(issue => {
         const cats = JSON.parse(issue.categories) as string[]
         cats.forEach(c => {
             if (categoryCounts[c] !== undefined) categoryCounts[c]++
@@ -30,13 +26,14 @@ async function getStats() {
         }
     })
 
-    // Recent solutions
-    const recentUpdates = await prisma.productUpdate.findMany({
-        where: { isPublished: true },
-        take: 5,
-        orderBy: { createdAt: 'desc' },
-        include: { issue: true }
-    })
+    // Recent updates from mock data
+    const recentUpdates = MOCK_PRODUCT_UPDATES
+        .filter(u => u.isPublished)
+        .slice(0, 5)
+        .map(u => ({
+            ...u,
+            issue: MOCK_ISSUES.find(i => i.id === u.issueId)
+        }))
 
     return { totalIssues, totalPosts, totalReactions, solvedIssues, categoryCounts, regionCounts, recentUpdates }
 }
@@ -124,7 +121,7 @@ export default async function DashboardPage() {
                                     [{update.type.toUpperCase()}] {update.title}
                                 </div>
                                 <div className="text-sm text-slate-600 mb-1">
-                                    関連課題: {update.issue.title}
+                                    関連課題: {update.issue?.title || '不明'}
                                 </div>
                                 <div className="text-xs text-muted-foreground">
                                     {update.description}

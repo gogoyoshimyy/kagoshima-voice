@@ -1,28 +1,15 @@
-import { PrismaClient } from '@prisma/client'
 import { IssueCard } from '@/components/IssueCard'
 import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
-const prisma = new PrismaClient()
+import { MOCK_ISSUES, getMockIssueCounts } from '@/lib/mockData'
 
 async function getIssues() {
-  // In a real app, we would use search params for filtering.
-  // For this demo, we just fetch mostly recent ones.
-  const issues = await prisma.issueCard.findMany({
-    where: { isPublic: true },
-    orderBy: { createdAt: 'desc' },
-    include: {
-      _count: {
-        select: { posts: true, reactions: true, follows: true }
-      },
-      reactions: {
-        select: { type: true }
-      }
-    },
-    take: 20
-  })
-  return issues
+  // Using mock data for demo deployment
+  return MOCK_ISSUES.map(issue => ({
+    ...issue,
+    _count: getMockIssueCounts(issue.id)
+  }))
 }
 
 export default async function Home() {

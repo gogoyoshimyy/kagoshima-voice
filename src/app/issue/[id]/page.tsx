@@ -1,40 +1,23 @@
-import { PrismaClient } from '@prisma/client'
 import { ReactionBar } from '@/components/ReactionBar'
 import { SolutionCard } from '@/components/SolutionCard'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { format } from 'date-fns'
-
-const prisma = new PrismaClient()
+import { getMockIssueById } from '@/lib/mockData'
 
 async function getIssue(id: string) {
-    return await prisma.issueCard.findUnique({
-        where: { id },
-        include: {
-            productUpdates: true,
-            solutions: {
-                where: { isPublished: true },
-                include: {
-                    _count: {
-                        select: { reactions: true }
-                    },
-                    reactions: {
-                        select: { userId: true, type: true }
-                    }
-                }
-            },
-            _count: {
-                select: { posts: true, follows: true }
-            },
-            reactions: {
-                select: { type: true, userId: true }
-            },
-            follows: {
-                select: { userId: true }
-            }
+    // Using mock data for demo deployment
+    const issue = getMockIssueById(id)
+    if (!issue) return null
+
+    return {
+        ...issue,
+        _count: {
+            posts: issue.posts.length,
+            follows: issue.follows.length
         }
-    })
+    }
 }
 
 export default async function IssuePage({ params }: { params: Promise<{ id: string }> }) {

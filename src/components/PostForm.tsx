@@ -67,10 +67,8 @@ export function PostForm() {
         formData.append('textFinal', rewrittenText || text)
         formData.append('userId', userId)
 
-        const res = await submitPost(formData)
-        if (res?.error) {
-            setLimitError(res.error)
-        }
+        // Demo mode: will redirect to home
+        await submitPost(formData)
     }
 
     return (
