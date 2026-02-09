@@ -4,7 +4,13 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { format } from 'date-fns'
-import { getMockIssueById } from '@/lib/mockData'
+import { getMockIssueById, MOCK_ISSUES } from '@/lib/mockData'
+
+export async function generateStaticParams() {
+    return MOCK_ISSUES.map((issue) => ({
+        id: issue.id,
+    }))
+}
 
 async function getIssue(id: string) {
     // Using mock data for demo deployment

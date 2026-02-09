@@ -1,10 +1,6 @@
-'use server'
-
 import { TOXIC_WORDS } from './constants'
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 
-// Mock toxicity check
+// Mock toxicity check (can run on client)
 export async function checkToxicity(text: string) {
     let rewritten = text
     let isToxic = false
@@ -29,51 +25,41 @@ export async function checkToxicity(text: string) {
     return { isToxic, rewritten, foundWords }
 }
 
-// Demo mode: All actions below are no-ops for static deployment
+// Client-side no-op actions for static export demo
 
 export async function submitPost(formData: FormData) {
-    // Demo mode: no database writes
-    // Just redirect to home page
-    redirect('/')
+    // Demo mode: do nothing
 }
 
 export async function toggleReaction(issueId: string, userId: string, type: string) {
-    // Demo mode: no database writes
-    revalidatePath(`/issue/${issueId}`)
+    // Demo mode: do nothing
 }
 
 export async function toggleFollow(issueId: string, userId: string) {
-    // Demo mode: no database writes
-    revalidatePath(`/issue/${issueId}`)
+    // Demo mode: do nothing
 }
 
 export async function toggleSolutionReaction(solutionId: string, userId: string, type: string) {
-    // Demo mode: no database writes
-    revalidatePath(`/issue/[id]`, 'page')
+    // Demo mode: do nothing
 }
 
 // Admin actions
 export async function approvePost(postId: string) {
-    // Demo mode: no database writes
-    revalidatePath('/admin/moderation')
+    // Demo mode: do nothing
 }
 
 export async function rejectPost(postId: string) {
-    // Demo mode: no database writes
-    revalidatePath('/admin/moderation')
+    // Demo mode: do nothing
 }
 
 export async function mergeIssue(fromId: string, toId: string) {
-    // Demo mode: no database writes
-    revalidatePath('/admin/issues')
+    // Demo mode: do nothing
 }
 
 export async function updateIssue(issueId: string, data: { title?: string, summary?: string }) {
-    // Demo mode: no database writes
-    revalidatePath('/admin/issues')
+    // Demo mode: do nothing
 }
 
 export async function createProductUpdate(data: any) {
-    // Demo mode: no database writes
-    revalidatePath('/admin/products')
+    // Demo mode: do nothing
 }

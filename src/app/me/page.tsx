@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
 import { format } from 'date-fns'
+import { MOCK_POSTS, MOCK_FOLLOWS, MOCK_NOTIFICATIONS, MOCK_ISSUES } from '@/lib/mockData'
 
 type UserData = {
     follows: any[]
@@ -21,25 +22,36 @@ export default function MePage() {
         const id = localStorage.getItem('kv_user_id')
         if (id) {
             setUserId(id)
-            fetchData(id)
-        } else {
-            setLoading(false)
-        }
-    }, [])
+            // Static export: fetch from mock data
+            // In real app: API call
 
-    const fetchData = async (id: string) => {
-        // In a real app, this would be a server action or API route.
-        // Since we used localStorage ID, we need to pass it to server.
-        // Let's create a server action for fetching user data.
-        // For now, I'll assume we can create a fetcher function server side 
-        // but called from here.
-        const res = await fetch(`/api/user?id=${id}`) // Need to implement this API route
-        if (res.ok) {
-            const json = await res.json()
-            setData(json)
+            // For demo purposes, we check if this ID has any data in mock
+            const hasPosts = MOCK_POSTS.some(p => p.userId === id)
+
+            // If local ID matches no data (random ID), fallback to demo user 'user-001' to show something
+            const targetId = hasPosts ? id : 'user-001'
+
+            const userPosts = MOCK_POSTS.filter(p => p.userId === targetId)
+            const postCount = userPosts.length
+
+            const follows = MOCK_FOLLOWS.filter(f => f.userId === targetId).map(f => {
+                const issue = MOCK_ISSUES.find(i => i.id === f.issueId)
+                return {
+                    ...f,
+                    issue: issue ? { id: issue.id, title: issue.title, regionScope: issue.regionScope } : null
+                }
+            })
+
+            const notifications = MOCK_NOTIFICATIONS.filter(n => n.userId === targetId)
+
+            setData({
+                follows,
+                notifications,
+                postCount
+            })
         }
         setLoading(false)
-    }
+    }, [])
 
     if (loading) return <div className="p-10 text-center">読み込み中...</div>
 

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { CATEGORIES, REGIONS } from '@/lib/constants'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -59,6 +60,8 @@ export function PostForm() {
         }
     }
 
+    const router = useRouter() // Add this hook
+
     const handleSubmit = async () => {
         const formData = new FormData()
         formData.append('categories', JSON.stringify(selectedCategories))
@@ -67,8 +70,9 @@ export function PostForm() {
         formData.append('textFinal', rewrittenText || text)
         formData.append('userId', userId)
 
-        // Demo mode: will redirect to home
+        // Demo mode: client side redirect
         await submitPost(formData)
+        router.push('/')
     }
 
     return (

@@ -1,3 +1,5 @@
+'use client'
+
 import Link from 'next/link'
 import { MOCK_ISSUES } from '@/lib/mockData'
 
